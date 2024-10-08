@@ -31,6 +31,7 @@ INSTALLED_APPS = [
     "cloudinary",
     "cloudinary_storage",
     "corsheaders",
+    "properties",
 ]
 
 MIDDLEWARE = [
@@ -121,13 +122,15 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # cloudinary storage
+DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
+
 CLOUDINARY_STORAGE = {
     "CLOUD_NAME": config("CLOUDINARY_CLOUD_NAME"),
     "API_KEY": config("CLOUDINARY_API_KEY"),
     "API_SECRET": config("CLOUDINARY_API_SECRET"),
 }
 
-MEDIA_URL = "/media/"
+MEDIA_URL = "https://res.cloudinary.com/{}/".format(config("CLOUDINARY_CLOUD_NAME"))
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (

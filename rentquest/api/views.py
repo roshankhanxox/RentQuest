@@ -1,6 +1,6 @@
 from rest_framework import viewsets, permissions, status
-from .models import User, Property
-from .serializers import UserSerializer, PropertySerializer
+from .models import User
+from .serializers import UserSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.response import Response
 from django.urls import reverse
@@ -9,6 +9,7 @@ from django.conf import settings
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
+from rest_framework.exceptions import PermissionDenied
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -52,10 +53,10 @@ class UserViewSet(viewsets.ModelViewSet):
                 {"error": "Invalid token!"}, status=status.HTTP_400_BAD_REQUEST
             )
 
-
-class PropertyViewSet(viewsets.ModelViewSet):
-    queryset = Property.objects.all()
-    serializer_class = PropertySerializer
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    def me(self, request):
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
 
 
 class CustomTokenObtainPairView(TokenObtainPairView):
