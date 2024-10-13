@@ -18,4 +18,5 @@ urlpatterns = [
     path("properties/", include("properties.urls")),
     path("login/refresh/", CustomTokenRefreshView.as_view(), name="token_refresh"),
     path("logout/", LogoutView.as_view(), name="logout"),  # Add the logout URL
+    path("reviews/", include("reviews.urls")),
 ]

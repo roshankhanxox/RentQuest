@@ -1,19 +1,4 @@
-# Create your models here.
 
-
-# class User(AbstractUser):
-#     ROLE_CHOICES = [
-#         ("student", "Student"),
-#         ("landlord", "Landlord"),
-#     ]
-#     role = models.CharField(max_length=20, choices=ROLE_CHOICES, null=True)
-#     verification_token = models.UUIDField(
-#         default=uuid.uuid4, editable=False, unique=True
-#     )
-#     is_verified = models.BooleanField(default=False)
-
-#     def __str__(self):
-#         return self.username
 
 import uuid
 from django.db import models

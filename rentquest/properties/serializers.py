@@ -3,6 +3,10 @@ from .models import Property, PropertyImage
 
 
 class PropertySerializer(serializers.ModelSerializer):
+    landlord = serializers.ReadOnlyField(
+        source="landlord.username"
+    )  # Read-only field for landlord
+
     class Meta:
         model = Property
         fields = [

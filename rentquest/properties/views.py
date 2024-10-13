@@ -1,6 +1,7 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
 from .models import Property, PropertyImage
 from .serializers import PropertySerializer, PropertyImageSerializer
 
@@ -13,7 +14,11 @@ class PropertyViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         if self.request.user.role != "landlord":
             raise PermissionDenied("Only landlords can create property")
-        serializer.save(landlord=self.request.user)
+        property_instance = serializer.save(landlord=self.request.user)
+        return Response(
+            {"message": "Property created successfully", "id": property_instance.id},
+            status=status.HTTP_201_CREATED,
+        )
 
     def get_queryset(self):
         return Property.objects.filter(landlord=self.request.user)
