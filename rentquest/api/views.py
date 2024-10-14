@@ -19,25 +19,59 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()  # This saves the user and returns the user instance
+        if serializer.is_valid():
+            user = (
+                serializer.save()
+            )  # This saves the user and returns the user instance
 
-        token = user.verification_token
-        verification_link = request.build_absolute_uri(
-            reverse(
-                "user-verify-email", args=[token]
-            )  # Changed from "verify_email" to "users-verify-email"
-        )
+            # Generate verification token and link
+            token = user.verification_token
+            verification_link = request.build_absolute_uri(
+                reverse("user-verify-email", args=[token])
+            )
 
-        # sending verification mail
-        send_mail(
-            "verify your email",
-            f"click the link to verify your email : {verification_link}",
-            settings.DEFAULT_FROM_EMAIL,
-            [user.email],
-            fail_silently=False,
-        )
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+            # Sending verification email
+            send_mail(
+                "Verify Your Email",
+                f"Click the link to verify your email: {verification_link}",
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email],
+                fail_silently=False,
+            )
+
+            return Response(
+                {
+                    "success": True,
+                    "message": "User created successfully! A verification email has been sent.",
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        else:
+            # Return error messages from the serializer
+            return Response(
+                {"success": False, "errors": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # serializer = self.get_serializer(data=request.data)
+        # serializer.is_valid(raise_exception=True)
+        # user = serializer.save()  # This saves the user and returns the user instance
+
+        # token = user.verification_token
+        # verification_link = request.build_absolute_uri(
+        #     reverse(
+        #         "user-verify-email", args=[token]
+        #     )  # Changed from "verify_email" to "users-verify-email"
+        # )
+
+        # # sending verification mail
+        # send_mail(
+        #     "verify your email",
+        #     f"click the link to verify your email : {verification_link}",
+        #     settings.DEFAULT_FROM_EMAIL,
+        #     [user.email],
+        #     fail_silently=False,
+        # )
+        # return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["get"], url_path="verify-email/(?P<token>[^/.]+)")
     def verify_email(self, request, token):

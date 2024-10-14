@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "properties",
     "reviews",
+    "algoliasearch_django",
 ]
 
 MIDDLEWARE = [
@@ -151,3 +152,9 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 GOOGLE_MAPS_API_KEY = config("GOOGLE_MAPS_API_KEY")
+
+ALGOLIA = {
+    "APPLICATION_ID": config("APPLICATION_ID"),
+    "API_KEY": config("API_KEY"),
+    "INDEX_NAME": "PropertyIndex",
+}
