@@ -10,5 +10,11 @@ class ReviewViewSet(viewsets.ModelViewSet):
         permissions.IsAuthenticatedOrReadOnly
     ]  # Anyone can view, but only authenticated users can post
 
+    def get_queryset(self):
+        property_id = self.request.query_params.get("property_id", None)
+        if property_id:
+            return Review.objects.filter(property_id=property_id)
+        return super().get_queryset()
+
     def perform_create(self, serializer):
         serializer.save()

@@ -1,13 +1,17 @@
 from rest_framework import viewsets, permissions, status, generics
-from django.db.models import Q
+from django.db.models import Q, Avg
 from django.conf import settings
 from geopy.geocoders import GoogleV3
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
+from rest_framework.generics import RetrieveAPIView
+from rest_framework.views import APIView
 from .models import Property, PropertyImage
 from .serializers import PropertySerializer, PropertyImageSerializer
 from math import radians, sin, cos, sqrt, atan2
+from reviews.models import Review
+from reviews.serializers import ReviewSerializer
 
 
 class PropertyViewSet(viewsets.ModelViewSet):
@@ -111,127 +115,35 @@ class PropertyGeoSearchView(generics.ListAPIView):
         return distance
 
 
-# class PropertyGeoSearchView(generics.ListAPIView):
-#     serializer_class = PropertySerializer
+class PropertyDetailView(APIView):
+    # permisssion_classes = [IsAuthenticated]
 
-#     def get_queryset(self):
-#         query = self.request.query_params.get("query", None)
+    def get(self, request, pk):
+        try:
+            property_instance = Property.objects.get(id=pk)
+        except Property.DoesNotExist:
+            return Response(
+                {"error": "Property not found"}, status=status.HTTP_404_NOT_FOUND
+            )
 
-#         if query:
-#             # Geocode the location to get latitude and longitude
-#             geolocator = GoogleV3(api_key=settings.GOOGLE_MAPS_API_KEY)
-#             location = geolocator.geocode(query)
+        # serialize property details
+        property_data = PropertySerializer(property_instance).data
 
-#             if location:
-#                 lat = location.latitude
-#                 lng = location.longitude
+        # fetcdhing the images from propertyimage model
+        images = PropertyImage.objects.filter(property=property_instance)
+        images_data = PropertyImageSerializer(images, many=True).data
 
-#                 # Filter properties based on the latitude and longitude
-#                 # You may need to implement a distance calculation to filter results based on distance
-#                 properties = Property.objects.filter(
-#                     Q(latitude__isnull=False, longitude__isnull=False)
-#                 )
+        # fetching reviews and calculating average rating
+        reviews = Review.objects.filter(property=property_instance)
+        reviews_data = ReviewSerializer(reviews, many=True).data
+        averge_rating = reviews.aggregate(Avg("rating"))["rating__avg"] or 0
 
-#                 # Example of filtering properties within a certain distance (e.g., 5km)
-#                 # This assumes you have a method to calculate distance
-#                 # You can also refine this to include a more sophisticated approach using haversine formula
-#                 nearby_properties = []
-#                 for property in properties:
-#                     # Calculate distance (using haversine or another method)
-#                     distance = self.calculate_distance(
-#                         lat, lng, property.latitude, property.longitude
-#                     )
-#                     if distance <= 5:  # Assuming 5 km radius
-#                         nearby_properties.append(property)
+        # combining the data to return
+        response_data = {
+            "property": property_data,
+            "images": images_data,
+            "reviews": reviews_data,
+            "averge_rating": round(averge_rating, 1),
+        }
 
-#                 return nearby_properties
-
-#         # Return all properties if no query is provided or geocoding fails
-#         return Property.objects.all()
-
-#     def calculate_distance(self, lat1, lon1, lat2, lon2):
-#         # Convert Decimal to float
-#         lat1 = float(lat1)
-#         lon1 = float(lon1)
-#         lat2 = float(lat2)
-#         lon2 = float(lon2)
-
-#         # Haversine formula to calculate the distance
-#         dlat = radians(lat2 - lat1)
-#         dlon = radians(lon2 - lon1)
-#         a = (
-#             sin(dlat / 2) ** 2
-#             + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
-#         )
-#         c = 2 * atan2(sqrt(a), sqrt(1 - a))
-#         distance = 6371 * c  # Radius of Earth in kilometers
-#         return distance
-
-
-# class PropertyGeoSearchView(generics.ListAPIView):
-#     serializer_class = PropertySerializer
-
-#     def get_queryset(self):
-#         query = self.request.query_params.get("query", None)
-#         min_price = self.request.query_params.get("min_price", None)
-#         max_price = self.request.query_params.get("max_price", None)
-#         min_size = self.request.query_params.get("min_size", None)
-#         max_size = self.request.query_params.get("max_size", None)
-
-#         if query:
-#             # Geocode the location to get latitude and longitude
-#             geolocator = GoogleV3(api_key=settings.GOOGLE_MAPS_API_KEY)
-#             location = geolocator.geocode(query)
-
-#             if location:
-#                 lat = location.latitude
-#                 lng = location.longitude
-
-#                 # Filter properties based on the latitude and longitude
-#                 properties = Property.objects.filter(
-#                     Q(latitude__isnull=False, longitude__isnull=False)
-#                 )
-
-#                 # Filter by distance
-#                 nearby_properties = []
-#                 for property in properties:
-#                     distance = self.calculate_distance(
-#                         lat, lng, property.latitude, property.longitude
-#                     )
-#                     if distance <= 5:  # Assuming 5 km radius
-#                         nearby_properties.append(property)
-
-#                 properties = nearby_properties  # Update the properties list
-
-#         else:
-#             properties = Property.objects.all()
-
-#         # Apply additional filters if specified
-#         if min_price:
-#             properties = [prop for prop in properties if prop.price >= float(min_price)]
-#         if max_price:
-#             properties = [prop for prop in properties if prop.price <= float(max_price)]
-#         if min_size:
-#             properties = [prop for prop in properties if prop.size >= int(min_size)]
-#         if max_size:
-#             properties = [prop for prop in properties if prop.size <= int(max_size)]
-
-#         return properties
-
-#     def calculate_distance(self, lat1, lon1, lat2, lon2):
-#         # Convert Decimal to float
-#         lat1 = float(lat1)
-#         lon1 = float(lon1)
-#         lat2 = float(lat2)
-#         lon2 = float(lon2)
-
-#         # Haversine formula to calculate the distance
-#         dlat = radians(lat2 - lat1)
-#         dlon = radians(lon2 - lon1)
-#         a = (
-#             sin(dlat / 2) ** 2
-#             + cos(radians(lat1)) * cos(radians(lat2)) * sin(dlon / 2) ** 2
-#         )
-#         c = 2 * atan2(sqrt(a), sqrt(1 - a))
-#         distance = 6371 * c  # Radius of Earth in kilometers
-#         return distance
+        return Response(response_data, status=status.HTTP_200_OK)
