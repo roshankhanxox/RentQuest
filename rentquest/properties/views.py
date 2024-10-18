@@ -1,6 +1,8 @@
+import requests
 from rest_framework import viewsets, permissions, status, generics
 from django.db.models import Q, Avg
 from django.conf import settings
+from django.http import JsonResponse
 from geopy.geocoders import GoogleV3
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.exceptions import PermissionDenied
@@ -144,6 +146,198 @@ class PropertyDetailView(APIView):
             "images": images_data,
             "reviews": reviews_data,
             "averge_rating": round(averge_rating, 1),
+            "latitude": property_data["latitude"],  # Include latitude
+            "longitude": property_data["longitude"],
         }
 
         return Response(response_data, status=status.HTTP_200_OK)
+
+
+# def nearby_places(request):
+#     lat = request.GET.get("lat")
+#     lng = request.GET.get("lng")
+#     radius = request.GET.get("radius", "1000")  # Default radius (e.g., 1000 meters)
+
+#     # Make a request to the Google Places API using the server-side API key
+#     google_api_url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+#     params = {
+#         "location": f"{lat},{lng}",
+#         "radius": radius,
+#         "key": settings.GOOGLE_MAPS_API_KEY,
+#     }
+
+#     response = requests.get(google_api_url, params=params)
+#     data = response.json()
+
+#     # Return the API result back to the frontend
+#     return JsonResponse(data)
+
+
+# def nearby_places(request):
+#     lat = request.GET.get("lat")
+#     lng = request.GET.get("lng")
+#     radius = request.GET.get("radius", "1000")  # Default radius (e.g., 1000 meters)
+
+#     # Define place types or keywords to search for
+#     place_types = [
+#         "shopping_mall",
+#         "hospital",
+#         "police",
+#         "pharmacy",
+#     ]  # Google API types
+#     restaurant_keyword = "restaurant"
+
+#     # Store results for all types
+#     all_results = []
+
+#     # Google Places API base URL
+#     google_api_url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+
+#     # Search for each type
+#     for place_type in place_types:
+#         params = {
+#             "location": f"{lat},{lng}",
+#             "radius": radius,
+#             "type": place_type,  # Place type filter
+#             "key": settings.GOOGLE_MAPS_API_KEY,
+#         }
+#         response = requests.get(google_api_url, params=params)
+#         data = response.json()
+
+#         # Collect results for this place type
+#         if "results" in data:
+#             all_results.extend(data["results"])
+
+#     # Search for restaurants (limiting to 2-3)
+#     params = {
+#         "location": f"{lat},{lng}",
+#         "radius": radius,
+#         "keyword": restaurant_keyword,  # Keyword filter for restaurants
+#         "key": settings.GOOGLE_MAPS_API_KEY,
+#     }
+#     response = requests.get(google_api_url, params=params)
+#     data = response.json()
+
+#     # Collect results for restaurants, limiting to 3
+#     if "results" in data:
+#         all_results.extend(data["results"][:3])  # Add only first 3 restaurants
+
+
+#     # Return the combined results
+#     return JsonResponse({"results": all_results})
+# def nearby_places(request):
+#     lat = request.GET.get("lat")
+#     lng = request.GET.get("lng")
+#     radius = request.GET.get("radius", "400")  # Default radius (e.g., 400 meters)
+
+#     # Define place types or keywords to search for
+#     place_types = [
+#         "shopping_mall",
+#         "hospital",
+#         "police",
+#         "pharmacy",
+#     ]  # Google API types
+#     restaurant_keyword = "restaurant"
+
+#     # Store results for all types
+#     all_results = []
+
+#     # Google Places API base URL
+#     google_api_url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+
+#     # Search for each type and limit to 2 closest results
+#     for place_type in place_types:
+#         params = {
+#             "location": f"{lat},{lng}",
+#             "radius": radius,
+#             "type": place_type,  # Place type filter
+#             "key": settings.GOOGLE_MAPS_API_KEY,
+#         }
+#         response = requests.get(google_api_url, params=params)
+#         data = response.json()
+
+#         # Collect the 2 closest results for this place type
+#         if "results" in data:
+#             all_results.extend(data["results"][:2])
+
+#     # Search for restaurants (limiting to 2 closest results)
+#     params = {
+#         "location": f"{lat},{lng}",
+#         "radius": radius,
+#         "keyword": restaurant_keyword,  # Keyword filter for restaurants
+#         "key": settings.GOOGLE_MAPS_API_KEY,
+#     }
+#     response = requests.get(google_api_url, params=params)
+#     data = response.json()
+
+#     # Collect the 2 closest restaurants
+#     if "results" in data:
+#         all_results.extend(data["results"][:2])
+
+
+#     # Return the combined results (limited to 2 per category)
+#     return JsonResponse({"results": all_results})
+def nearby_places(request):
+    lat = request.GET.get("lat")
+    lng = request.GET.get("lng")
+    radius = request.GET.get("radius", "400")  # Default radius (e.g., 400 meters)
+
+    # Define place types to search for, excluding police for the radius restriction
+    place_types = [
+        "shopping_mall",
+        "hospital",
+        "pharmacy",
+    ]  # Google API types
+    restaurant_keyword = "restaurant"
+
+    # Store results for all types
+    all_results = []
+
+    # Google Places API base URL
+    google_api_url = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
+
+    # Search for the closest police station without radius restriction
+    police_station_params = {
+        "location": f"{lat},{lng}",
+        "radius": "5000",  # Use a larger radius for police stations
+        "type": "police",  # Place type filter for police stations
+        "key": settings.GOOGLE_MAPS_API_KEY,
+    }
+    police_response = requests.get(google_api_url, params=police_station_params)
+    police_data = police_response.json()
+
+    # Collect the closest police station if available
+    if "results" in police_data and police_data["results"]:
+        all_results.append(police_data["results"][0])  # Add the closest police station
+
+    # Search for other place types (limiting to 2 closest results)
+    for place_type in place_types:
+        params = {
+            "location": f"{lat},{lng}",
+            "radius": radius,
+            "type": place_type,  # Place type filter
+            "key": settings.GOOGLE_MAPS_API_KEY,
+        }
+        response = requests.get(google_api_url, params=params)
+        data = response.json()
+
+        # Collect the 2 closest results for this place type
+        if "results" in data:
+            all_results.extend(data["results"][:2])
+
+    # Search for restaurants (limiting to 2 closest results)
+    params = {
+        "location": f"{lat},{lng}",
+        "radius": radius,
+        "keyword": restaurant_keyword,  # Keyword filter for restaurants
+        "key": settings.GOOGLE_MAPS_API_KEY,
+    }
+    response = requests.get(google_api_url, params=params)
+    data = response.json()
+
+    # Collect the 2 closest restaurants
+    if "results" in data:
+        all_results.extend(data["results"][:2])
+
+    # Return the combined results (including the closest police station)
+    return JsonResponse({"results": all_results})

@@ -25,4 +25,6 @@ class PropertySerializer(serializers.ModelSerializer):
             "landlord",
             "property_images",
             "created_at",
+            "latitude",
+            "longitude",
         ]
